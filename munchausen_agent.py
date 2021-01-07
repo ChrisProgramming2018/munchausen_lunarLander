@@ -45,7 +45,7 @@ class MDQNAgent():
         self.gamma = config['gamma']
         self.tau = config['tau']
         self.eps_start = 1.0
-        self.eval = config["eval"]
+        self.eval = config["eval_frames"]
         self.eps = config["eps"]
         self.min_eps = config["eps_end"]
         self.eps_frames = int(config["eps_frames"])
@@ -154,8 +154,6 @@ class MDQNAgent():
             self.steps +=1
             t += 1
             if done:
-                if i_epiosde % self.eval == 0:
-                    self.eval_policy()
                 i_epiosde += 1
                 scores_window.append(episode_reward)
                 ave_reward = np.mean(scores_window)
@@ -172,6 +170,8 @@ class MDQNAgent():
             self.memory.add(state, action, reward, next_state, done, done)
             self.learn()
             state = next_state
+            if frame % self.eval == 0:
+                self.eval_policy()
             if frame < self.eps_frames:
                 eps = max(self.eps_start - (frame*(1/self.eps_frames)), self.min_eps)
             else:
@@ -208,4 +208,3 @@ def time_format(sec):
     mins = rem // 60
     secs = rem - mins * 60
     return hours, mins, round(secs,2)
-
