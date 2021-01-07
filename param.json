@@ -11,7 +11,7 @@
   "fc1_units": 256,
   "fc2_units": 256,
   "batch_size": 8,
-  "eval": 100,
+  "eval_frames": 25000,
   "eps": 1,
   "eps_frames": 5000,
   "eps_end": 0.025,
