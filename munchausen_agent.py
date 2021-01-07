@@ -98,9 +98,9 @@ class MDQNAgent():
         # not gradients on target
         with torch.no_grad():
             Q_targets_next = self.qnetwork_target(next_states).detach()
-            q_next_diff = Q_targets_next - Q_targets_next.max(1)[0].unsqueeze(1)
-            logsum = torch.logsumexp(q_next_diff/self.entropy, dim=1).unsqueeze(-1)
-            tau_log_action_next = q_next_diff - self.entropy * logsum
+            Q_targets_next_max = Q_targets_next.max(1)[0].unsqueeze(1)
+            logsum = torch.logsumexp((Q_targets_next - Q_targets_next_max)/self.entropy, dim=1).unsqueeze(-1)
+            tau_log_action_next = Q_targets_next - Q_targets_next_max - self.entropy * logsum
 
             # compute policy
             target_policy = F.softmax(Q_targets_next/self.entropy, dim=1)
@@ -109,10 +109,9 @@ class MDQNAgent():
             Q_target =  (self.gamma * (target_policy * (Q_targets_next - tau_log_action_next) * dones).sum(dim=1)).unsqueeze(1)    # shape batch_size, 1
             # munchhaus add use target network
             m_target = self.qnetwork_target(states)
-            m_target_max = m_target.max(1)[0]
-            q_diff = m_target - m_target_max.unsqueeze(1)
-            m_logsum = logsum = torch.logsumexp(q_diff/self.entropy, dim=1).unsqueeze(-1)
-            log_pi = q_diff - self.entropy * m_logsum
+            m_target_max = m_target.max(1)[0].unsqueeze(1)
+            m_logsum =  torch.logsumexp((m_target - m_target_max)/self.entropy, dim=1).unsqueeze(-1)
+            log_pi = m_target - m_target_max - self.entropy * m_logsum
             munchhaus_reward = log_pi.gather(1, actions).clamp(min=self.clip, max=0)
             Q_targets_munchausen = (rewards + self.alpha * munchhaus_reward) + Q_target 
 
