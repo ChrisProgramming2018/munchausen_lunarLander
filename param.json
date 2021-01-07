@@ -1,0 +1,19 @@
+{
+  "env_name": "LunarLander-v2",
+  "locexp": "search_results",
+  "lr": 1e-3,
+  "tau": 1e-2,
+  "gamma": 0.99,
+  "seed": 3,
+  "DDQN": 1,
+  "total_frames": 400000,
+  "buffer_size": 100000,
+  "fc1_units": 256,
+  "fc2_units": 256,
+  "batch_size": 8,
+  "eval": 100,
+  "eps": 1,
+  "eps_frames": 5000,
+  "eps_end": 0.025,
+  "device": "cuda"
+}
