@@ -1,5 +1,5 @@
 {
-  "env_name": "LunarLander-v2",
+  "env_name": "MsPacman-v0",
   "locexp": "search_results",
   "lr": 1e-3,
   "tau": 1e-2,
@@ -10,10 +10,13 @@
   "buffer_size": 100000,
   "fc1_units": 256,
   "fc2_units": 256,
-  "batch_size": 8,
-  "eval_frames": 25000,
+  "batch_size": 32,
+  "eval_frames": 20000,
   "eps": 1,
-  "eps_frames": 5000,
+  "eps_frames": 100000,
   "eps_end": 0.025,
+  "size": 84,
+  "image_pad": 0,
+  "history_length": 3,
   "device": "cuda"
 }

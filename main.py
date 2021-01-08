@@ -21,7 +21,7 @@ def main(args):
     env.seed(config['seed'])
     print('State shape: ', env.observation_space.shape)
     print('Number of actions: ', env.action_space.n)
-    agent = MDQNAgent(state_size=8, action_size=4, config=config)
+    agent = MDQNAgent(state_size=200, action_size=4, config=config)
     agent.train_agent()
 
 if __name__ == "__main__":

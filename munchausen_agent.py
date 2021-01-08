@@ -12,8 +12,8 @@ from collections import deque
 from torch.utils.tensorboard import SummaryWriter
 from replay_buffer import ReplayBuffer
 from datetime import datetime
-from model import QNetwork
-
+from model import QNetwork, Encoder
+from framestack import FrameStack
 
 
 class MDQNAgent():
@@ -33,6 +33,7 @@ class MDQNAgent():
         np.random.seed(seed=self.seed)
         random.seed(self.seed)
         self.env = gym.make(config["env_name"])
+        self.env  = FrameStack(self.env, config)
         self.env.seed(self.seed)
         now = datetime.now()
         dt_string = now.strftime("%d_%m_%Y_%H:%M:%S")
@@ -55,7 +56,9 @@ class MDQNAgent():
         self.qnetwork_local = QNetwork(state_size, action_size, self.seed).to(self.device)
         self.qnetwork_target = QNetwork(state_size, action_size, self.seed).to(self.device)
         self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=self.lr)
-        self.memory = ReplayBuffer((state_size, ), (1, ), config["buffer_size"], self.seed, self.device)
+        self.encoder = Encoder(config).to(self.device)
+        self.encoder_optimizer = torch.optim.Adam(self.encoder.parameters(), self.lr)
+        self.memory = ReplayBuffer((config["history_length"], config["size"], config["size"] ), (1, ), config["buffer_size"], config["image_pad"], self.seed, self.device)
         pathname = str(config["seed"]) + str(dt_string)
         tensorboard_name = str(config["locexp"]) + '/runs/' + "MDQN" + str(pathname)
         self.writer = SummaryWriter(tensorboard_name)
@@ -75,8 +78,11 @@ class MDQNAgent():
             eps (float): epsilon, for epsilon-greedy action selection
         """
         state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
+        state = state.type(torch.float32).div_(255)
         self.qnetwork_local.eval()
+        self.encoder.eval()
         with torch.no_grad():
+            state = self.encoder.create_vector(state)
             action_values = self.qnetwork_local(state)
         self.qnetwork_local.train()
 
@@ -94,9 +100,13 @@ class MDQNAgent():
             gamma (float): discount factor
         """
         states, actions, rewards, next_states, dones = self.memory.sample(self.batch_size)
+        states = states.type(torch.float32).div_(255)
+        states = self.encoder.create_vector(states)
 
         # not gradients on target
         with torch.no_grad():
+            next_states = next_states.type(torch.float32).div_(255)
+            next_states = self.encoder.create_vector(next_states)
             Q_targets_next = self.qnetwork_target(next_states).detach()
             Q_targets_next_max = Q_targets_next.max(1)[0].unsqueeze(1)
             logsum = torch.logsumexp((Q_targets_next - Q_targets_next_max)/self.entropy, dim=1).unsqueeze(-1)
@@ -122,7 +132,9 @@ class MDQNAgent():
         loss = F.mse_loss(Q_expected, Q_targets_munchausen.detach())
         # Minimize the loss
         self.optimizer.zero_grad()
+        self.encoder_optimizer.zero_grad()
         loss.backward()
+        self.encoder_optimizer.step()
         self.optimizer.step()
         self.writer.add_scalar('loss', loss, self.steps)
         # ------------------- update target network ------------------- #
